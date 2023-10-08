@@ -1,16 +1,16 @@
-use std::collections::HashMap;
+
 
 use yew::prelude::*;
 use yew_hooks::UseMapHandle;
 
 use crate::{node::{drag_handle::DragHandle, handle::{Handle, HandleType}}, utils::Position};
 
-use super::node::Node;
+use super::node_model::NodeModel;
 
 #[derive(Properties, PartialEq)]
 pub struct NodeViewProps {
-    pub node: Node,
-    pub set_node: Callback<Node>,
+    pub node: NodeModel,
+    pub set_node: Callback<NodeModel>,
 
     pub handle_registry: UseMapHandle<String, Position>
 }
@@ -18,7 +18,7 @@ pub struct NodeViewProps {
 #[function_component(NodeView)]
 pub fn node_view(props: &NodeViewProps) -> Html {
 
-    let NodeViewProps { node, set_node, handle_registry} = props;
+    let NodeViewProps { node, set_node: _, handle_registry} = props;
 
     let node_id = &node.id;
 

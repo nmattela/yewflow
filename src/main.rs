@@ -3,7 +3,6 @@ mod panel;
 mod utils;
 mod node;
 mod edge;
-mod hooks;
 
 use app::App;
 

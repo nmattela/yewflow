@@ -1,14 +1,14 @@
-use std::collections::HashMap;
 
-use crate::{hooks::{use_handle_registry::use_handle_registry}, utils::Position};
-use gloo_console::log;
+
+use crate::{utils::Position};
+
 use web_sys::HtmlElement;
 use yew::prelude::*;
-use yew_hooks::UseMapHandle;
+use yew_hooks::{UseMapHandle};
 
-use crate::hooks::use_handle_registry;
 
-use super::node::Node;
+
+use super::node_model::NodeModel;
 
 #[derive(Debug, PartialEq)]
 pub enum HandleType {
@@ -21,7 +21,7 @@ pub struct HandleProps {
     pub id: String,
     pub handle_type: HandleType,
 
-    pub node: Node,
+    pub node: NodeModel,
 
     pub handle_registry: UseMapHandle<String, Position>
 }
@@ -35,8 +35,8 @@ pub fn handle(props: &HandleProps) -> Html {
 
     {
         let handle_registry = handle_registry.clone();
-        use_effect_with((id.clone(), node_ref.clone(), node.position.clone()), move |(id, node_ref, _node_position)| {
-            node_ref.cast::<HtmlElement>().and_then(|node_ref| {
+        use_effect_with((id.clone(), node_ref.clone(), node.position), move |(id, node_ref, _node_position)| {
+            node_ref.cast::<HtmlElement>().map(|node_ref| {
                 let rect = node_ref.get_bounding_client_rect();
                 let x = rect.x() as i32;
                 let y = rect.y() as i32;

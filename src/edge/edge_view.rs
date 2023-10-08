@@ -1,26 +1,26 @@
-use std::{rc::Rc, collections::HashMap};
 
-use gloo_console::{warn, log};
-use web_sys::{Document, HtmlElement};
+
+use gloo_console::{warn};
+
 use yew::prelude::*;
 use yew_hooks::UseMapHandle;
 
-use crate::{utils::Position, node::{node::Node, handle}, panel, hooks::{use_handle_registry::use_handle_registry}};
+use crate::{utils::Position};
 
-use super::edge::Edge;
+use super::edge_model::EdgeModel;
 
 #[derive(Properties, PartialEq)]
 pub struct EdgeViewProps {
-    pub edge: Edge,
+    pub edge: EdgeModel,
 
     pub handle_registry: UseMapHandle<String, Position>,
-    pub set_edge: Callback<Edge>
+    pub set_edge: Callback<EdgeModel>
 }
 
 #[function_component(EdgeView)]
 pub fn edge_view(props: &EdgeViewProps) -> Html {
 
-    let EdgeViewProps { edge, handle_registry, set_edge } = props;
+    let EdgeViewProps { edge, handle_registry, set_edge: _ } = props;
 
     let start_coordinates: Result<Position, String> = {
         let current = handle_registry.current();
@@ -48,7 +48,7 @@ pub fn edge_view(props: &EdgeViewProps) -> Html {
         }
     };
 
-    match start_coordinates.and_then(|start| end_coordinates.and_then(|end| Ok((start, end)))) {
+    match start_coordinates.and_then(|start| end_coordinates.map(|end| (start, end))) {
         Ok((start_coordinates, end_coordinates)) => {
             html! {
                 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" class="edge">

@@ -1,5 +1,5 @@
 #[derive(PartialEq, Clone)]
-pub struct Edge {
+pub struct EdgeModel {
     pub id: String,
     pub start_id: String,
     pub end_id: String,

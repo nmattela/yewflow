@@ -1,9 +1,9 @@
-use gloo_console::log;
-use yew::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{EventTarget, HtmlElement};
 
-use super::node::Node;
+use yew::prelude::*;
+
+
+
+
 
 #[derive(Properties, PartialEq)]
 pub struct DragHandleProps {

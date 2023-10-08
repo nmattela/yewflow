@@ -1,27 +1,27 @@
-use yew::virtual_dom::Attributes::IndexMap;
+
 use yew_hooks::{UseMapHandle, use_map};
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use gloo_console::log;
+
+
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, EventTarget};
 use yew::prelude::*;
-use implicit_clone::sync::IMap;
 
-use crate::node::node::Node;
+
+use crate::node::node_model::NodeModel;
 use crate::node::node_view::NodeView;
-use crate::edge::edge::Edge;
+use crate::edge::edge_model::EdgeModel;
 use crate::edge::edge_view::EdgeView;
 use crate::utils::Position;
 
 #[derive(Properties, PartialEq)]
 pub struct PanelProps {
     pub height: String,
-    pub nodes: Vec<Node>,
-    pub set_nodes: Callback<Vec<Node>>,
-    pub edges: Vec<Edge>,
-    pub set_edges: Callback<Vec<Edge>>,
+    pub nodes: Vec<NodeModel>,
+    pub set_nodes: Callback<Vec<NodeModel>>,
+    pub edges: Vec<EdgeModel>,
+    pub set_edges: Callback<Vec<EdgeModel>>,
 }
 
 #[function_component(Panel)]
@@ -31,14 +31,14 @@ pub fn panel(props: &PanelProps) -> Html {
 
     let currently_dragged_node = use_state(|| None::<(String, Position)>);
 
-    let preview_edge = use_state(|| None::<Edge>);
+    let preview_edge = use_state(|| None::<EdgeModel>);
 
     let handle_registry: UseMapHandle<String, Position> = use_map(HashMap::new());
 
-    let set_node: Callback<Node> = {
+    let set_node: Callback<NodeModel> = {
         let nodes = props.nodes.clone();
         let set_nodes = props.set_nodes.clone();
-        Callback::from(move |node: Node| {
+        Callback::from(move |node: NodeModel| {
             let new_nodes = nodes.iter().map(|n| {
                 if n.id == node.id {
                     node.clone()
@@ -50,10 +50,10 @@ pub fn panel(props: &PanelProps) -> Html {
         })
     };
 
-    let set_edge: Callback<Edge> = {
+    let set_edge: Callback<EdgeModel> = {
         let edges = props.edges.clone();
         let set_edges = props.set_edges.clone();
-        Callback::from(move |edge: Edge| {
+        Callback::from(move |edge: EdgeModel| {
             let new_edges = edges.iter().map(|e| {
                 if e.id == edge.id {
                     edge.clone()
@@ -80,7 +80,7 @@ pub fn panel(props: &PanelProps) -> Html {
         Callback::from(move |e: MouseEvent| {
             let event_target: Option<EventTarget> = e.target();
             let handle: Option<HtmlElement> = event_target.and_then(|t| t.dyn_into().ok());
-            handle.and_then(|handle| {
+            handle.map(|handle| {
                 let class_names = handle.get_attribute("class").unwrap_or_else(|| String::from(""));
 
                 // Offset of drag handle in relation to node
@@ -103,19 +103,18 @@ pub fn panel(props: &PanelProps) -> Html {
                 let position_y = offset_top + relative_top;
 
                 if class_names.contains("drag-handle") {
-                    handle.parent_element().and_then(|node| {
+                    handle.parent_element().map(|node| {
                         let class_names = node.get_attribute("class").unwrap_or_else(|| String::from(""));
                         let node_id = node.id();
-                        if class_names.contains("node") && node_id != "" {
+                        if class_names.contains("node") && !node_id.is_empty() {
                             relative.set((relative_left, relative_top));
                             currently_dragged_node.set(Some((node_id, (position_x, position_y))));
                         };
                         Some(())
                     });
-                    Some(())
                 } else if class_names.contains("source-handle") {
                     preview_edge.set(Some(
-                        Edge {
+                        EdgeModel {
                             id: "preview_edge".to_string(),
                             start_id: handle.id(),
                             source_handle_id: handle.id(),
@@ -124,10 +123,8 @@ pub fn panel(props: &PanelProps) -> Html {
                         }
                     ));
                     
-                    Some(())
-                } else {
-                    Some(())
                 }
+                Some(())
             });
         })
     };
@@ -141,17 +138,17 @@ pub fn panel(props: &PanelProps) -> Html {
         Callback::from(move |e: MouseEvent| {
             currently_dragged_node.set(None);
             preview_edge.set(None);
-            (*preview_edge).clone().and_then(|edge| e.target().and_then(|target| target.dyn_into().ok().and_then(|target: HtmlElement| {
+            (*preview_edge).clone().and_then(|edge| e.target().and_then(|target| target.dyn_into().ok().map(|target: HtmlElement| {
                 handle_registry.remove(&edge.target_handle_id);
                 let class_names = target.get_attribute("class").unwrap_or_else(|| String::from(""));
                 if class_names.contains("target-handle") {
-                    let new_edge = Edge {
+                    let new_edge = EdgeModel {
                         target_handle_id: target.id(),
                         ..edge.clone()
                     };
-                    set_edges.emit(edges.iter().chain(vec![new_edge].iter()).map(|e| e.clone()).collect());
+                    set_edges.emit(edges.iter().chain(vec![new_edge].iter()).cloned().collect());
                 }
-                Some(())
+                
             })));
         })
     };
@@ -165,25 +162,23 @@ pub fn panel(props: &PanelProps) -> Html {
         Callback::from(move |event: MouseEvent| {
             let x = event.client_x();
             let y = event.client_y();
-            panel_ref.cast::<HtmlElement>().and_then(|panel_ref|
-                {
-                    (*currently_dragged_node).clone().and_then(|(cdn, (offset_x, offset_y))|
-                        nodes.iter().find(|node| node.id.eq(&cdn)).and_then(|node| {
-                            let width = panel_ref.client_width();
-                            let height = panel_ref.client_height();
-                            if x >= 0 && x <= width && y >= 0 && y <= height {
-                                let new_node = Node { position: (x - offset_x, y - offset_y), ..node.clone() };
-                                set_node.emit(new_node);
-                            }
-                            Some(())                        
-                        })
-                    );
-                    (*preview_edge).clone().and_then(|edge| {
-                        handle_registry.insert(edge.target_handle_id, (x - 8, y - 8))
-                    });
-                    Some(())
-                }
-            );  
+            panel_ref.cast::<HtmlElement>().map(|panel_ref| {
+                (*currently_dragged_node).clone().and_then(|(cdn, (offset_x, offset_y))|
+                    nodes.iter().find(|node| node.id.eq(&cdn)).map(|node| {
+                        let width = panel_ref.client_width();
+                        let height = panel_ref.client_height();
+                        if x >= 0 && x <= width && y >= 0 && y <= height {
+                            let new_node = NodeModel { position: (x - offset_x, y - offset_y), ..node.clone() };
+                            set_node.emit(new_node);
+                        }
+                                                
+                    })
+                );
+                (*preview_edge).clone().and_then(|edge| {
+                    handle_registry.insert(edge.target_handle_id, (x - 8, y - 8))
+                });
+                Some(())
+            });  
         })
     };
 
@@ -225,7 +220,7 @@ pub fn panel(props: &PanelProps) -> Html {
                     None => html! {}
                 }
             }
-            {props.nodes.iter().enumerate().map(|(i, node)| {
+            {props.nodes.iter().enumerate().map(|(_i, node)| {
                 let set_node = set_node.clone();
                 let node = node.clone();
                 let handle_registry = handle_registry.clone();

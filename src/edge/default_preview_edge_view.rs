@@ -5,8 +5,8 @@ use crate::{edge::edge_view_wrapper::EdgeCoordinates};
 
 use super::{edge_view_wrapper::EdgeViewProps};
 
-#[function_component(EdgeView)]
-pub fn edge_view(props: &EdgeViewProps<()>) -> Html {
+#[function_component(DefaultPreviewEdgeView)]
+pub fn default_preview_edge_view(props: &EdgeViewProps<()>) -> Html {
 
     let EdgeViewProps { edge: _, edge_coordinates: EdgeCoordinates { start_coordinates, end_coordinates } } = props;
 

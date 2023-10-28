@@ -1121,6 +1121,7 @@ dependencies = [
  "gloo-console 0.3.0",
  "implicit-clone 0.4.1",
  "indexmap 2.0.2",
+ "js-sys",
  "stylist",
  "wasm-bindgen",
  "web-sys",

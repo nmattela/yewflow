@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-use gloo_console::log;
 use yew_hooks::{UseMapHandle, use_map};
 
 use std::collections::HashMap;
@@ -42,6 +32,11 @@ pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> 
     pub edge_view: Callback<EdgeViewProps<EdgeData>, Html>,
     #[prop_or_default]
     pub preview_edge_view: Option<Callback<EdgeViewProps<()>, Html>>,
+
+    #[prop_or_default]
+    pub style: String,
+    #[prop_or_default]
+    pub class: String,
 }
 
 #[derive(PartialEq, Clone, Copy)]
@@ -134,10 +129,6 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
     let handle_registry: UseMapHandle<String, Position> = use_map(HashMap::new());
     let viewport: UseStateHandle<Viewport> = use_state(|| Viewport::new(0.0, 0.0, 1.0));
     let panning: UseStateHandle<bool> = use_state(|| false);
-
-    handle_registry.clone().current().iter().for_each(|(key, value)| {
-        log!(key, value.0, value.1);
-    });
 
     use_register_handles(nodes_ref.clone(), handle_registry.clone(), *viewport.clone());
 

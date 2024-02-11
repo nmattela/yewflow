@@ -1,19 +1,11 @@
-
-
-
-
-
-
-
-
-use web_sys::{HtmlElement};
+use web_sys::HtmlElement;
 use yew::{Callback, Properties, function_component, Html, use_node_ref, use_effect, NodeRef};
 use yew_hooks::UseMapHandle;
 
 
-use crate::{utils::{Position, AttributeExtractHelper}};
+use crate::utils::{Position, AttributeExtractHelper};
 
-use super::{node_model::NodeModel};
+use super::node_model::NodeModel;
 
 #[derive(Properties, PartialEq)]
 pub struct NodeViewWrapperProps<T: PartialEq + Clone> {

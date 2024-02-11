@@ -1,41 +1,13 @@
-[package]
-name = "trunk-template"
-version = "0.1.0"
-edition = "2021"
-description = "Template for starting a Yew project using Trunk"
-readme = "README.md"
-repository = "https://github.com/yewstack/yew-trunk-minimal-template"
-license = "MIT OR Apache-2.0"
-keywords = ["yew", "trunk"]
-categories = ["gui", "wasm", "web-programming"]
+[workspace]
+members = [
+    "packages/yewflow",
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[dependencies]
-yew = { version="0.21", features=["csr"] }
-stylist = { version="0.12.1", features = ["yew_integration"] }
-gloo-console = "0.3.0"
-wasm-bindgen = "0.2"
-implicit-clone = { version="0.4.1", features=["map"] }
-indexmap = "2.0.2"
-yew-hooks = "0.3.0"
-js-sys = "0.3.64"
-
-[dependencies.web-sys]
-version = "0.3"
-# We need to enable all the web-sys features we want to use!
-features = [
-    "console",
-    "Document",
-    "HtmlElement",
-    "MouseEvent",
-    "DomRect",
-    "EventTarget",
-    "Element",
-    "Window",
-    "MutationObserver",
-    "MutationRecord",
-    "Node",
-    "MutationObserverInit",
-    "HtmlCollection",
-    "WheelEvent"
+    "examples/simple",
 ]
+resolver = "2"
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"

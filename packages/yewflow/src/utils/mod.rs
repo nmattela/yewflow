@@ -1,5 +1,5 @@
 
-use web_sys::{Element};
+use web_sys::Element;
 
 pub type Position = (f64, f64);
 

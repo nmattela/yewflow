@@ -1,10 +1,10 @@
 use crate::utils::AttributeExtractHelper;
-use gloo_console::{warn};
+use gloo_console::warn;
 use web_sys::{MutationRecord, MutationObserver, MutationObserverInit, HtmlElement, HtmlCollection};
 use yew::{NodeRef, hook, use_effect_with};
 use yew_hooks::UseMapHandle;
 use wasm_bindgen::closure::Closure;
-use wasm_bindgen::{JsCast};
+use wasm_bindgen::JsCast;
 use utils::Position;
 
 use crate::{utils, panel::Viewport};

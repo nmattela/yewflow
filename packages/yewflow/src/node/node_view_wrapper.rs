@@ -22,14 +22,15 @@ pub struct NodeViewProps<T: PartialEq + Clone> {
     pub node_ref: NodeRef,
 }
 
+/**
+ * A wrapping component around a provided node component. It mostly handles the placement of the node.
+ */
 #[function_component(NodeViewWrapper)]
 pub fn node_view_wrapper<T: PartialEq + Clone>(props: &NodeViewWrapperProps<T>) -> Html {
     
     let NodeViewWrapperProps { node, handle_registry: _, node_view } = props;
     
     let node_ref = use_node_ref();
-
-    // use_register_handles(node_ref.clone(), handle_registry.clone());
 
     {
         let node_ref = node_ref.clone();

@@ -1,10 +1,13 @@
 
 use yew::prelude::*;
 
-use crate::{edge::edge_view_wrapper::EdgeCoordinates};
+use crate::edge::edge_view_wrapper::EdgeCoordinates;
 
-use super::{edge_view_wrapper::EdgeViewProps};
+use super::edge_view_wrapper::EdgeViewProps;
 
+/**
+ * The default view for a preview edge in case no view was provided by the user to the panel
+ */
 #[function_component(DefaultPreviewEdgeView)]
 pub fn default_preview_edge_view(props: &EdgeViewProps<()>) -> Html {
 

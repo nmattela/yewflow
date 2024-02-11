@@ -1372,9 +1372,7 @@ version = "0.1.0"
 dependencies = [
  "gloo-console 0.3.0",
  "implicit-clone 0.4.8",
- "indexmap 2.2.2",
  "js-sys",
- "stylist",
  "wasm-bindgen",
  "web-sys",
  "yew 0.21.0",

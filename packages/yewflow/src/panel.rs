@@ -19,23 +19,36 @@ use crate::utils::{Position, AttributeExtractHelper};
 
 #[derive(Properties, PartialEq)]
 pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> {
+    /// Width of the panel
     pub width: String,
+    /// Height of the panel
     pub height: String,
+    /// A vector of nodes
     pub nodes: Vec<NodeModel<NodeData>>,
+    #[prop_or_default]
+    /// A callback function to listen to node changes (node gets added, removed, or modified)
     pub set_nodes: Callback<Vec<NodeModel<NodeData>>>,
+    /// A vector of edges
     pub edges: Vec<EdgeModel<EdgeData>>,
+    #[prop_or_default]
+    /// A callback function to listen to edge changes (edge gets removed, or modified)
     pub set_edges: Callback<Vec<EdgeModel<EdgeData>>>,
-
+    /// A separate callback exists for the creation of an edge. This is because the edge does not have associated data yet
+    #[prop_or_default]
     pub on_create_edge: Callback<EdgeModel<()>>,
-
+    /// A callback that should return the appropriate component for the node, given the props
     pub node_view: Callback<NodeViewProps<NodeData>, Html>,
+    /// A callback that should return the appropriate component for the edge, given the props
     pub edge_view: Callback<EdgeViewProps<EdgeData>, Html>,
     #[prop_or_default]
+    /// A callback that should return the appropriate component for a preview edge (the edge that you see when you are dragging out an edge from a handle, but have not yet placed it)
     pub preview_edge_view: Option<Callback<EdgeViewProps<()>, Html>>,
 
     #[prop_or_default]
+    /// Additional styles
     pub style: String,
     #[prop_or_default]
+    /// Additional CSS class
     pub class: String,
 }
 
@@ -118,6 +131,10 @@ impl Viewport {
     }
 }
 
+/**
+ * The base panel for your flowchart.
+ * It takes two type arguments, which represent the data provided to nodes and edges respectively.
+ */
 #[function_component(Panel)]
 pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static>(props: &PanelProps<NodeData, EdgeData>) -> Html {
 
@@ -171,8 +188,6 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             let event_target: Option<EventTarget> = e.target();
             let handle: Option<HtmlElement> = event_target.and_then(|t| t.dyn_into().ok());
             handle.map(|handle| {
-                let _class_names = handle.get_class_names();
-
                 // Offset of drag handle in relation to node
                 let offset_left = handle.offset_left() as f64;
                 let offset_top = handle.offset_top() as f64;
@@ -304,7 +319,8 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
     html!{
         <div
             ref={panel_ref.clone()}
-            style={format!("height: {}; background-color: gray; position: relative; overflow: hidden; transform-origin: 0px 0px 0px;", props.height)}
+            style={format!("height: {}; width: {}; {}", props.height, props.width, props.style)}
+            class={props.class.clone()}
             onmousedown={on_mouse_down}
             onmouseup={on_mouse_up}
             onmousemove={on_mouse_move}

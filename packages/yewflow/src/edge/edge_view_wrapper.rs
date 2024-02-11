@@ -1,6 +1,6 @@
 
 
-use gloo_console::{warn, log};
+use gloo_console::warn;
 
 use web_sys::HtmlElement;
 use yew::prelude::*;
@@ -8,7 +8,7 @@ use yew_hooks::UseMapHandle;
 
 use crate::{utils::{Position, AttributeExtractHelper}, panel::Viewport};
 
-use super::{edge_model::EdgeModel};
+use super::edge_model::EdgeModel;
 
 #[derive(Properties, PartialEq)]
 pub struct EdgeViewWrapperProps<T: PartialEq + Clone> {
@@ -35,23 +35,15 @@ pub struct EdgeViewProps<T: PartialEq + Clone> {
     pub edge_coordinates: EdgeCoordinates,
 }
 
+/**
+ * A wrapping component around a provided edge component. It mostly handles the placement of the edge.
+ */
 #[function_component(EdgeViewWrapper)]
 pub fn edge_view_wrapper<T: PartialEq + Clone>(props: &EdgeViewWrapperProps<T>) -> Html {
 
     let EdgeViewWrapperProps { edge, panel_ref, handle_registry, viewport, edge_view, set_edge: _ } = props;
 
     let edge_ref = use_node_ref();
-
-    let test = {
-        let current = handle_registry.current();
-        let handle = current.get(&edge.source_handle_id);
-        match handle {
-            Some(p) => *p,
-            None => (0.0, 0.0)
-        }
-    };
-
-    log!(test.0, test.1);
 
     let start_coordinates: Result<Position, String> = {
         let current = handle_registry.current();

@@ -1,18 +1,4 @@
-
-
-
-
-
-
-
-
-
 use yew::prelude::*;
-
-
-
-
-
 
 #[derive(Debug, PartialEq)]
 pub enum HandleType {
@@ -22,15 +8,22 @@ pub enum HandleType {
 
 #[derive(Properties, PartialEq)]
 pub struct HandleProps {
+    /// Uniquely identify the handle
     pub id: String,
+    /// The handle must be either a source or a target
     pub handle_type: HandleType,
     
+    /// Additional CSS style
     #[prop_or_default]
     pub style: Option<AttrValue>,
+    /// Additional CSS class
     #[prop_or_default]
     pub class: Option<AttrValue>,
 }
 
+/**
+ * A handle represents both endpoints of an edge on a node.
+ */
 #[function_component(Handle)]
 pub fn handle(props: &HandleProps) -> Html {
 

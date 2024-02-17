@@ -1,6 +1,4 @@
-
-
-use gloo_console::{log, warn};
+use gloo_console::warn;
 
 use web_sys::HtmlElement;
 use yew::prelude::*;
@@ -46,32 +44,27 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
     let edge_ref = use_node_ref();
 
     /*Start coorinates are the position of the source handle */
-    let start_coordinates = use_memo((handle_registry.clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
-        /*Get the handle registry */
-        let current = handle_registry.current();
+    let start_coordinates = use_memo(((*handle_registry.current()).clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
         /*Find the source handle in the registry */
-        let handle = current.get(&edge.source_handle_id);
+        let handle = handle_registry.get(&edge.source_handle_id);
         /*Get the width of the panel */
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
         match handle.zip(width) {
             Some(((x, y), width)) => {
-                log!(*x, *y, width);
                 Ok((
                     ((*x - viewport.x) / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)),
                     (*y - viewport.y) / viewport.z
                 ))
             },
-            None => Err(format!("edge with ID {} was supposed to connect to source handle ID {} which is a node of ID {}, but that handle does not exist", edge.id, edge.source_handle_id, edge.start_id))
+            None => Err(format!("edge with ID {} was supposed to connect to source handle ID {} which is a handle of node ID {}, but that handle does not exist", edge.id, edge.source_handle_id, edge.start_id))
         }
     });
 
     /*End coordinates are the position of the target handle */
-    let end_coordinates = use_memo((handle_registry.clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
-        /*Get the handle registry */
-        let current = handle_registry.current();
+    let end_coordinates = use_memo(((*handle_registry.current()).clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
         /*Find the target handle in the registry */
-        let handle = current.get(&edge.target_handle_id);
+        let handle = handle_registry.get(&edge.target_handle_id);
         /*Get the width of the panel */
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
@@ -83,7 +76,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
                 ))
             },
             None => {
-                Err(format!("edge with ID {} was supposed to connect to target handle ID {} which is a node of ID {}, but that handle does not exist", edge.id, edge.target_handle_id, edge.end_id))
+                Err(format!("edge with ID {} was supposed to connect to target handle ID {} which is a handle of node ID {}, but that handle does not exist", edge.id, edge.target_handle_id, edge.end_id))
             }
         }
     });

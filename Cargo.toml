@@ -3,6 +3,7 @@ members = [
     "packages/yewflow",
 
     "examples/simple",
+    "examples/stress-test",
 ]
 resolver = "2"
 

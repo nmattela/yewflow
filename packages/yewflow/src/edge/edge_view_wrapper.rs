@@ -1,6 +1,6 @@
 
 
-use gloo_console::warn;
+use gloo_console::{log, warn};
 
 use web_sys::HtmlElement;
 use yew::prelude::*;
@@ -39,19 +39,24 @@ pub struct EdgeViewProps<T: PartialEq + Clone> {
  * A wrapping component around a provided edge component. It mostly handles the placement of the edge.
  */
 #[function_component(EdgeViewWrapper)]
-pub fn edge_view_wrapper<T: PartialEq + Clone>(props: &EdgeViewWrapperProps<T>) -> Html {
+pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapperProps<T>) -> Html {
 
     let EdgeViewWrapperProps { edge, panel_ref, handle_registry, viewport, edge_view, set_edge: _ } = props;
 
     let edge_ref = use_node_ref();
 
-    let start_coordinates: Result<Position, String> = {
+    /*Start coorinates are the position of the source handle */
+    let start_coordinates = use_memo((handle_registry.clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
+        /*Get the handle registry */
         let current = handle_registry.current();
+        /*Find the source handle in the registry */
         let handle = current.get(&edge.source_handle_id);
+        /*Get the width of the panel */
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
         match handle.zip(width) {
             Some(((x, y), width)) => {
+                log!(*x, *y, width);
                 Ok((
                     ((*x - viewport.x) / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)),
                     (*y - viewport.y) / viewport.z
@@ -59,11 +64,15 @@ pub fn edge_view_wrapper<T: PartialEq + Clone>(props: &EdgeViewWrapperProps<T>) 
             },
             None => Err(format!("edge with ID {} was supposed to connect to source handle ID {} which is a node of ID {}, but that handle does not exist", edge.id, edge.source_handle_id, edge.start_id))
         }
-    };
+    });
 
-    let end_coordinates: Result<Position, String> = {
+    /*End coordinates are the position of the target handle */
+    let end_coordinates = use_memo((handle_registry.clone(), edge.clone(), panel_ref.clone(), *viewport), |(handle_registry, edge, panel_ref, viewport)| {
+        /*Get the handle registry */
         let current = handle_registry.current();
+        /*Find the target handle in the registry */
         let handle = current.get(&edge.target_handle_id);
+        /*Get the width of the panel */
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
         match handle.zip(width) {
@@ -77,9 +86,10 @@ pub fn edge_view_wrapper<T: PartialEq + Clone>(props: &EdgeViewWrapperProps<T>) 
                 Err(format!("edge with ID {} was supposed to connect to target handle ID {} which is a node of ID {}, but that handle does not exist", edge.id, edge.target_handle_id, edge.end_id))
             }
         }
-    };
+    });
 
-    let view_box = use_memo((start_coordinates.clone(), end_coordinates.clone()), |(start_coordinates, end_coordinates)| {
+    /*The box in which the SVG of the edge will be contained in */
+    let view_box = use_memo(((*start_coordinates).clone(), (*end_coordinates).clone()), |(start_coordinates, end_coordinates)| {
         start_coordinates.clone().and_then(|start_coordinates| end_coordinates.clone().map(|end_coordinates| {
             let left = start_coordinates.0.min(end_coordinates.0);
             let top = start_coordinates.1.min(end_coordinates.1);
@@ -102,7 +112,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone>(props: &EdgeViewWrapperProps<T>) 
         });
     }
 
-    match start_coordinates.and_then(|start| end_coordinates.and_then(|end| (*view_box).clone().map(|view_box| (start, end, view_box)))) {
+    match (*start_coordinates).clone().and_then(|start| (*end_coordinates).clone().and_then(|end| (*view_box).clone().map(|view_box| (start, end, view_box)))) {
         Ok((start_coordinates, end_coordinates, view_box)) => {
             html! {
                 <svg

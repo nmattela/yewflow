@@ -1,5 +1,5 @@
 use web_sys::HtmlElement;
-use yew::{Callback, Properties, function_component, Html, use_node_ref, use_effect, NodeRef};
+use yew::{function_component, html, use_effect, use_node_ref, Callback, Html, Properties};
 use yew_hooks::UseMapHandle;
 
 
@@ -18,8 +18,6 @@ pub struct NodeViewWrapperProps<T: PartialEq + Clone> {
 #[derive(Properties, PartialEq)]
 pub struct NodeViewProps<T: PartialEq + Clone> {
     pub node: NodeModel<T>,
-
-    pub node_ref: NodeRef,
 }
 
 /**
@@ -71,9 +69,12 @@ pub fn node_view_wrapper<T: PartialEq + Clone>(props: &NodeViewWrapperProps<T>) 
         });
     }
 
-    node_view.emit(NodeViewProps {
-        node: node.clone(),
-        node_ref: node_ref.clone(),
-    })
+    html! {
+        <div ref={node_ref.clone()}>
+            {node_view.emit(NodeViewProps {
+                node: node.clone(),
+            })}
+        </div>
+    }
 
 }

@@ -50,14 +50,22 @@ pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> 
     #[prop_or_default]
     /// Additional CSS class
     pub class: String,
+
+    #[prop_or_default]
+    pub debug: bool,
 }
 
 #[derive(PartialEq, Clone, Copy)]
 pub struct Viewport {
+    /*The absolute x coordinate of the current viewport (in pixels) */
     pub x: f64,
+    /*The absolute y coordinate of the current viewport (in pixels) */
     pub y: f64,
+    /*The zoom level (default is 1.0) */
     pub z: f64,
+    /*The previous value of x. Needed for panning */
     old_x: f64,
+    /*The previous value of y. Needed for panning */
     old_y: f64
 }
 
@@ -83,28 +91,6 @@ impl Viewport {
     }
 
     pub fn pan(&self, (x, y): Position) -> Self {
-
-        let base_x = (x - self.old_x) * self.z;
-        let base_y = (y - self.old_y) * self.z;
-
-        let _transformed_x = {
-            let powed = base_x.abs().powf(self.z);
-            if base_x >= 0.0 {
-                powed
-            } else {
-                powed * -1.0
-            }
-        };
-
-        let _transformed_y = {
-            let powed = base_y.abs().powf(self.z);
-            if base_y >= 0.0 {
-                powed
-            } else {
-                powed * -1.0
-            }
-        };
-
         Viewport {
             x: self.x + (x - self.old_x),
             y: self.y + (y - self.old_y),
@@ -116,6 +102,7 @@ impl Viewport {
 
     pub fn zoom(&self, container_rect: DomRect, (_x, _y, z): (f64, f64, f64), (mouse_x, mouse_y): (f64, f64)) -> Self {
         let new_z = self.z + z;
+        /*Hardcoded limits on zooming in and out. Strange things happen if you go into the negatives */
         if !(0.5..=2.0).contains(&new_z) {
             *self
         } else {
@@ -141,13 +128,20 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
     let panel_ref = use_node_ref();
     let nodes_ref = use_node_ref();
 
+    /*Holds the ID and position of the node that is currently being dragged by the user */
     let currently_dragged_node = use_state(|| None::<(String, Position)>);
+    /*The preview edge (when busy connecting two handles with one another) */
     let preview_edge = use_state(|| None::<EdgeModel<()>>);
+    /*A mapping of handle ID and its corresponding position */
     let handle_registry: UseMapHandle<String, Position> = use_map(HashMap::new());
+    /*Information on the viewport */
     let viewport: UseStateHandle<Viewport> = use_state(|| Viewport::new(0.0, 0.0, 1.0));
+    /*Whether the user is panning (moving around the panel) */
     let panning: UseStateHandle<bool> = use_state(|| false);
 
     use_register_handles(nodes_ref.clone(), handle_registry.clone(), *viewport.clone());
+
+    let mouse_position = use_state(|| (0.0, 0.0));
 
     let set_node: Callback<NodeModel<NodeData>> = {
         let nodes = props.nodes.clone();
@@ -264,9 +258,12 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
         let viewport = viewport.clone();
         let panning = panning.clone();
         let currently_dragged_node = currently_dragged_node.clone();
+        let mouse_position = mouse_position.clone();
         Callback::from(move |event: MouseEvent| {
             let x = event.client_x() as f64;
             let y = event.client_y() as f64;
+
+            mouse_position.set((x, y));
 
             if *panning {
                 viewport.set(viewport.pan((
@@ -326,6 +323,19 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             onmousemove={on_mouse_move}
             onwheel={on_wheel}
         >
+            {
+                if props.debug {
+                    html! {
+                        <div style={"position: absolute; left: 0; top: 0;"}>
+                            {
+                                format!("Mouse position: ({}, {})", mouse_position.0, mouse_position.1)
+                            }
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
             <div
                 style={format!(
                     "position: relative; transform: translate({}px, {}px) scale({});",

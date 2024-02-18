@@ -9,8 +9,11 @@ use web_sys::{HtmlElement, EventTarget, DomRect};
 use yew::prelude::*;
 
 
+use crate::edge::default_edge_view::DefaultEdgeView;
 use crate::edge::default_preview_edge_view::DefaultPreviewEdgeView;
-use crate::hooks::use_register_handles::use_register_handles;
+
+use crate::hooks::use_register_handles::{use_register_handles, Handle};
+use crate::node::default_node_view::DefaultNodeView;
 use crate::node::node_model::NodeModel;
 use crate::edge::edge_model::EdgeModel;
 use crate::edge::edge_view_wrapper::{EdgeViewWrapper, EdgeViewProps};
@@ -18,15 +21,15 @@ use crate::node::node_view_wrapper::{NodeViewWrapper, NodeViewProps};
 use crate::utils::{Position, AttributeExtractHelper};
 
 #[derive(Properties, PartialEq)]
-pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> {
+pub struct PanelProps<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static> {
     /// Width of the panel
     pub width: String,
     /// Height of the panel
     pub height: String,
     /// A vector of nodes
     pub nodes: Vec<NodeModel<NodeData>>,
+        /// A callback function to listen to node changes (node gets added, removed, or modified)
     #[prop_or_default]
-    /// A callback function to listen to node changes (node gets added, removed, or modified)
     pub set_nodes: Callback<Vec<NodeModel<NodeData>>>,
     /// A vector of edges
     pub edges: Vec<EdgeModel<EdgeData>>,
@@ -37,18 +40,20 @@ pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> 
     #[prop_or_default]
     pub on_create_edge: Callback<EdgeModel<()>>,
     /// A callback that should return the appropriate component for the node, given the props
+    #[prop_or(Callback::from(|props| html! { <DefaultNodeView<NodeData> ..props /> }))]
     pub node_view: Callback<NodeViewProps<NodeData>, Html>,
     /// A callback that should return the appropriate component for the edge, given the props
+    #[prop_or(Callback::from(|props| html! { <DefaultEdgeView<EdgeData> ..props /> }))]
     pub edge_view: Callback<EdgeViewProps<EdgeData>, Html>,
-    #[prop_or_default]
     /// A callback that should return the appropriate component for a preview edge (the edge that you see when you are dragging out an edge from a handle, but have not yet placed it)
+    #[prop_or_default]
     pub preview_edge_view: Option<Callback<EdgeViewProps<()>, Html>>,
 
-    #[prop_or_default]
     /// Additional styles
-    pub style: String,
     #[prop_or_default]
+    pub style: String,
     /// Additional CSS class
+    #[prop_or_default]
     pub class: String,
 
     #[prop_or_default]
@@ -123,7 +128,7 @@ impl Viewport {
  * It takes two type arguments, which represent the data provided to nodes and edges respectively.
  */
 #[function_component(Panel)]
-pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static>(props: &PanelProps<NodeData, EdgeData>) -> Html {
+pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + Clone + 'static = ()>(props: &PanelProps<NodeData, EdgeData>) -> Html {
 
     let panel_ref = use_node_ref();
     let nodes_ref = use_node_ref();
@@ -133,7 +138,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
     /*The preview edge (when busy connecting two handles with one another) */
     let preview_edge = use_state(|| None::<EdgeModel<()>>);
     /*A mapping of handle ID and its corresponding position */
-    let handle_registry: UseMapHandle<String, Position> = use_map(HashMap::new());
+    let handle_registry: UseMapHandle<String, Handle> = use_map(HashMap::new());
     /*Information on the viewport */
     let viewport: UseStateHandle<Viewport> = use_state(|| Viewport::new(0.0, 0.0, 1.0));
     /*Whether the user is panning (moving around the panel) */
@@ -198,17 +203,22 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
                 let position_x = offset_left + relative_left;
                 let position_y = offset_top + relative_top;
 
-                if let Some(source_handle) = handle.parent_element_with_class("source-handle".to_string()) {
-                    preview_edge.set(Some(
-                        EdgeModel {
-                            id: "preview_edge".to_string(),
-                            start_id: handle.id(),
-                            source_handle_id: source_handle.id(),
-                            end_id: "preview_handle".to_string(),
-                            target_handle_id: "preview_handle".to_string(),
-                            data: (),
-                        }
-                    ));
+                let source_handle = handle.parent_element_with_class("source-handle".to_string());
+                let source_handle_is_connectable = source_handle.clone().map(|source_handle| source_handle.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true").unwrap_or(false);
+
+                if source_handle_is_connectable {
+                    if let Some(source_handle) = source_handle {
+                        preview_edge.set(Some(
+                            EdgeModel {
+                                id: "preview_edge".to_string(),
+                                start_id: handle.id(),
+                                source_handle_id: source_handle.id(),
+                                end_id: "preview_handle".to_string(),
+                                target_handle_id: "preview_handle".to_string(),
+                                data: (),
+                            }
+                        ));
+                    }
                 } else if let Some(drag_handle) = handle.parent_element_with_class("drag-handle".to_string()) {
                     let node = drag_handle.parent_element_with_class("node".to_string());
                     if let Some(node) = node {
@@ -238,7 +248,8 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             (*preview_edge).clone().and_then(|preview_edge| e.target().and_then(|target| target.dyn_into().ok().map(|target: HtmlElement| {
                 handle_registry.remove(&preview_edge.target_handle_id);
                 let class_names = target.get_class_names();
-                if class_names.contains(&"target-handle".to_string()) {
+                let is_connectable = target.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true";
+                if class_names.contains(&"target-handle".to_string()) && is_connectable {
                     on_create_edge.emit(EdgeModel {
                         target_handle_id: target.id(),
                         ..preview_edge.clone()
@@ -291,7 +302,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
                     })
                 );
                 (*preview_edge).clone().and_then(|edge| {
-                    handle_registry.insert(edge.target_handle_id, (x, y))
+                    handle_registry.insert(edge.target_handle_id, Handle { position: (x, y), is_connectable: false })
                 });
                 Some(())
             });  

@@ -19,6 +19,9 @@ pub struct HandleProps {
     /// Additional CSS class
     #[prop_or_default]
     pub class: Option<AttrValue>,
+    
+    #[prop_or(true)]
+    pub is_connectable: bool,
 }
 
 /**
@@ -32,6 +35,7 @@ pub fn handle(props: &HandleProps) -> Html {
         id,
         style,
         class,
+        is_connectable,
     } = props;
 
     let handle_ref = use_node_ref();
@@ -46,6 +50,7 @@ pub fn handle(props: &HandleProps) -> Html {
                 match handle_type { HandleType::Source => "source-handle", HandleType::Target => "target-handle" }
             )}
             style={style}
+            is_connectable={is_connectable.clone().to_string()}
         >
         </div>
     }

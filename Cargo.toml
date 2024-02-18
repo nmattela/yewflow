@@ -4,6 +4,7 @@ members = [
 
     "examples/simple",
     "examples/stress-test",
+    "examples/bezier",
 ]
 resolver = "2"
 

@@ -3,14 +3,14 @@ use yew::{function_component, html, use_effect, use_node_ref, Callback, Html, Pr
 use yew_hooks::UseMapHandle;
 
 
-use crate::utils::{Position, AttributeExtractHelper};
+use crate::{hooks::use_register_handles::Handle, utils::{AttributeExtractHelper}};
 
 use super::node_model::NodeModel;
 
 #[derive(Properties, PartialEq)]
 pub struct NodeViewWrapperProps<T: PartialEq + Clone> {
     pub node: NodeModel<T>,
-    pub handle_registry: UseMapHandle<String, Position>,
+    pub handle_registry: UseMapHandle<String, Handle>,
 
     pub node_view: Callback<NodeViewProps<T>, Html>,
 }

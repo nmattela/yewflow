@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use yewflow::{edge::{edge_model::EdgeModel, edge_view_wrapper::{EdgeCoordinates, EdgeViewProps}}, node::{drag_handle::DragHandle, handle::{Handle, HandleType}, node_model::NodeModel, node_view_wrapper::NodeViewProps}, panel::Panel};
+use yewflow::{edge::{builtin_edges::{straight_edge::StraightEdge}, edge_model::EdgeModel, edge_view_wrapper::EdgeViewProps}, node::{drag_handle::DragHandle, handle::{Handle, HandleType}, node_model::NodeModel, node_view_wrapper::NodeViewProps}, panel::Panel};
 
 #[derive(PartialEq, Clone)]
 pub struct NodeViewData {
@@ -13,32 +13,31 @@ pub fn node_view(props: &NodeViewProps<NodeViewData>) -> Html {
     let NodeViewProps { node } = props;
 
     html! {
-        <div class={"node-view-2"}>    
-            <DragHandle class={"drag-handle-node-view-2"}>
-                <div class={"node-view-2-content"}>
-                    <div class={"node-view-2-handles"}>
+        <div class={"node-view"}>
+            <DragHandle class={"drag-handle-node-view"}>
+                <div class={"node-view-content"}>
+                    <div class={"node-view-handles"}>
                         {(0..node.data.target_count).map(|i| {
                             html! {
                                 <Handle
                                     key={i}
                                     id={format!("{}{}_target", node.id.clone(), i)}
                                     handle_type={HandleType::Target}
-                                    style={"background-color: red;"}
+                                    style={"width: 10px; height: 10px; border-radius: 1000px; background-color: red;"}
+                                    is_connectable={i % 2 == 0}
                                 />
                             }
                         }).collect::<Vec<Html>>()}
                     </div>
-                    // <div>
-                    //     {format!("({}, {})", node.position.0, node.position.1)}
-                    // </div>
-                    <div class={"node-view-2-handles"}>
+                    <div class={"node-view-handles"}>
                         {(0..node.data.source_count).map(|i| {
                             html! {
                                 <Handle
                                     key={i}
                                     id={format!("{}{}_source", node.id.clone(), i)}
                                     handle_type={HandleType::Source}
-                                    style={"background-color: blue;"}
+                                    style={"width: 10px; height: 10px; border-radius: 1000px; background-color: blue;"}
+                                    is_connectable={i % 2 == 1}
                                 />
                             }
                         }).collect::<Vec<Html>>()}
@@ -58,14 +57,9 @@ pub struct EdgeViewData {
 #[function_component(EdgeView)]
 pub fn edge_view(props: &EdgeViewProps<EdgeViewData>) -> Html {
 
-    let EdgeViewProps { edge: _, edge_coordinates: EdgeCoordinates { start_coordinates, end_coordinates } } = props;
-
     html! {
-        <line
-            x1={(start_coordinates.0).to_string()}
-            y1={(start_coordinates.1).to_string()}
-            x2={(end_coordinates.0).to_string()}
-            y2={(end_coordinates.1).to_string()}
+        <StraightEdge
+            edge_coordinates={props.edge_coordinates.clone()}
             stroke={"orange"}
         />
     }
@@ -91,16 +85,16 @@ pub fn app() -> Html {
     ]);
 
     let edges = use_state(|| vec![
-                EdgeModel{
-                    id: String::from("edge_0"),
-                    start_id: String::from("0"),
-                    end_id: String::from("1"),
-                    source_handle_id: String::from("00_source"),
-                    target_handle_id: String::from("10_target"),
-                    data: EdgeViewData {
-                        label: String::from("Hello")
-                }
-                    }
+        EdgeModel{
+            id: String::from("edge_0"),
+            start_id: String::from("0"),
+            end_id: String::from("1"),
+            source_handle_id: String::from("00_source"),
+            target_handle_id: String::from("10_target"),
+            data: EdgeViewData {
+                label: String::from("Hello")
+            }
+        }
     ]);
 
     let set_nodes = {

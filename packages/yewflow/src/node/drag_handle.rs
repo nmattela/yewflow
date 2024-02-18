@@ -2,7 +2,7 @@ use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct DragHandleProps {
-    /// Optiona child elements for the handle
+    /// Optional child elements for the handle
     #[prop_or_default]
     pub children: Html,
     /// Optional CSS class

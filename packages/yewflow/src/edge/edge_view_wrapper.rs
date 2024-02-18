@@ -4,7 +4,7 @@ use web_sys::HtmlElement;
 use yew::prelude::*;
 use yew_hooks::UseMapHandle;
 
-use crate::{utils::{Position, AttributeExtractHelper}, panel::Viewport};
+use crate::{hooks::use_register_handles::Handle, panel::Viewport, utils::{AttributeExtractHelper, Position}};
 
 use super::edge_model::EdgeModel;
 
@@ -13,7 +13,7 @@ pub struct EdgeViewWrapperProps<T: PartialEq + Clone> {
     pub edge: EdgeModel<T>,
     pub panel_ref: NodeRef,
 
-    pub handle_registry: UseMapHandle<String, Position>,
+    pub handle_registry: UseMapHandle<String, Handle>,
     pub viewport: Viewport,
     // Do not remove. Somehow if you do not add it, start and end coordinates do not get updated!
     pub set_edge: Callback<EdgeModel<T>>,
@@ -21,7 +21,7 @@ pub struct EdgeViewWrapperProps<T: PartialEq + Clone> {
     pub edge_view: Callback<EdgeViewProps<T>, Html>
 }
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Clone)]
 pub struct EdgeCoordinates {
     pub start_coordinates: Position,
     pub end_coordinates: Position,
@@ -51,7 +51,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
         match handle.zip(width) {
-            Some(((x, y), width)) => {
+            Some((Handle { position: (x, y), is_connectable: _ }, width)) => {
                 Ok((
                     ((*x - viewport.x) / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)),
                     (*y - viewport.y) / viewport.z
@@ -69,7 +69,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
         let width = panel_ref.cast::<HtmlElement>().map(|element| element.get_bounding_client_rect().width());
 
         match handle.zip(width) {
-            Some(((x, y), width)) => {
+            Some((Handle { position: (x, y), is_connectable: _ }, width)) => {
                 Ok((
                     ((*x - viewport.x) / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)),
                     (*y - viewport.y) / viewport.z
@@ -88,7 +88,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
             let top = start_coordinates.1.min(end_coordinates.1);
             let width = (start_coordinates.0 - end_coordinates.0).abs();
             let height = (start_coordinates.1 - end_coordinates.1).abs();
-            (left, top, if width == 0.0 { 1.0 } else { width }, if height == 0.0 { 1.0 } else { height })
+            (left, top, width, height)
         }))
     });
 
@@ -112,7 +112,7 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
                     ref={edge_ref.clone()}
                     width={format!("{}px", view_box.2)}
                     height={format!("{}px", view_box.3)}
-                    style={format!("position: absolute; left: {}px; top: {}px", view_box.0, view_box.1)}
+                    style={format!("position: absolute; left: {}px; top: {}px; overflow: visible;", view_box.0, view_box.1)}
                     xmlns="http://www.w3.org/2000/svg"
                 >
                     {

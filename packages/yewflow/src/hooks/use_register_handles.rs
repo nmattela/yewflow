@@ -9,10 +9,16 @@ use utils::Position;
 
 use crate::{utils, panel::Viewport};
 
-#[hook]
-pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<String, Position>, viewport: Viewport) {
+#[derive(PartialEq, Clone)]
+pub struct Handle {
+    pub position: Position,
+    pub is_connectable: bool,
+}
 
-    fn search_and_register(element: HtmlElement, handle_registry: UseMapHandle<String, Position>) {
+#[hook]
+pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<String, Handle>, viewport: Viewport) {
+
+    fn search_and_register(element: HtmlElement, handle_registry: UseMapHandle<String, Handle>) {
         if let Ok(children) = element.children().dyn_into::<HtmlCollection>() {
             let array = js_sys::Array::from(&children);
             array.for_each(&mut |child: wasm_bindgen::JsValue, _: u32, _: js_sys::Array| {
@@ -27,7 +33,9 @@ pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<Str
                         let y = rect.y();
                         let center_offset_x = rect.width() / 2.0;
                         let center_offset_y = rect.height() / 2.0;
-                        handle_registry.insert(id.clone(), (x + center_offset_x, y + center_offset_y));
+                        // TODO look for is_connectable attribute here
+                        let is_connectable = child.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true";
+                        handle_registry.insert(id.clone(), Handle { position: (x + center_offset_x, y + center_offset_y), is_connectable });
                     }
 
                     search_and_register(child, handle_registry);

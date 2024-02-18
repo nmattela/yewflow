@@ -45,6 +45,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bezier"
+version = "0.1.0"
+dependencies = [
+ "gloo-console 0.3.0",
+ "yew 0.21.0",
+ "yewflow",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

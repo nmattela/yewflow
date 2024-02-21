@@ -1,5 +1,8 @@
 use yew::prelude::*;
 
+pub const SOURCE_HANDLE_CLASS: &str = "__yewflow_source_handle__";
+pub const TARGET_HANDLE_CLASS: &str = "__yewflow_target_handle__";
+
 #[derive(Debug, PartialEq)]
 pub enum HandleType {
     Source,
@@ -47,7 +50,7 @@ pub fn handle(props: &HandleProps) -> Html {
             class={format!(
                 "{} {} handle",
                 class.clone().unwrap_or(implicit_clone::unsync::IString::Static("")),
-                match handle_type { HandleType::Source => "source-handle", HandleType::Target => "target-handle" }
+                match handle_type { HandleType::Source => SOURCE_HANDLE_CLASS, HandleType::Target => TARGET_HANDLE_CLASS }
             )}
             style={style}
             is_connectable={is_connectable.clone().to_string()}

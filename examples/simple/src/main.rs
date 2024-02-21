@@ -1,5 +1,5 @@
 use yew::prelude::*;
-use yewflow::{edge::{builtin_edges::{straight_edge::StraightEdge}, edge_model::EdgeModel, edge_view_wrapper::EdgeViewProps}, node::{drag_handle::DragHandle, handle::{Handle, HandleType}, node_model::NodeModel, node_view_wrapper::NodeViewProps}, panel::Panel};
+use yewflow::{edge::{builtin_edges::straight_edge::StraightEdge, edge_model::EdgeModel, edge_view_wrapper::EdgeViewProps}, node::{drag_handle::DragHandle, handle::{Handle, HandleType}, node_model::NodeModel, node_view_wrapper::NodeViewProps}, panel::Panel, yew_flow_provider::YewFlowProvider};
 
 #[derive(PartialEq, Clone)]
 pub struct NodeViewData {
@@ -131,18 +131,20 @@ pub fn app() -> Html {
     };
 
     html! {
-        <Panel<NodeViewData, EdgeViewData>
-            nodes={(*nodes).clone()}
-            set_nodes={set_nodes}
-            edges={(*edges).clone()}
-            set_edges={set_edges}
-            width="100vw"
-            height="100vh"
-            node_view={Callback::from(|props| html! { <NodeView ..props /> })}
-            edge_view={Callback::from(|props| html! { <EdgeView ..props /> })}
-            on_create_edge={on_create_edge}
-            style={"background-color: gray; position: relative; overflow: hidden; transform-origin: 0px 0px 0px;"}
-        />
+        <YewFlowProvider>
+            <Panel<NodeViewData, EdgeViewData>
+                nodes={(*nodes).clone()}
+                set_nodes={set_nodes}
+                edges={(*edges).clone()}
+                set_edges={set_edges}
+                width="100vw"
+                height="100vh"
+                node_view={Callback::from(|props| html! { <NodeView ..props /> })}
+                edge_view={Callback::from(|props| html! { <EdgeView ..props /> })}
+                on_create_edge={on_create_edge}
+                style={"background-color: gray; position: relative; overflow: hidden; transform-origin: 0px 0px 0px;"}
+            />
+        </YewFlowProvider>
     }
     
 }

@@ -1,5 +1,7 @@
 use yew::prelude::*;
 
+pub const DRAG_HANDLE_CLASS: &str = "__yewflow_drag_handle__";
+
 #[derive(Properties, PartialEq)]
 pub struct DragHandleProps {
     /// Optional child elements for the handle
@@ -23,7 +25,7 @@ pub fn drag_handle(props: &DragHandleProps) -> Html {
 
     html! {
         <div
-            class={format!("drag-handle {}", class)}
+            class={format!("{} {}", DRAG_HANDLE_CLASS, class)}
             style={style.to_string()}
         >
             {children.clone()}

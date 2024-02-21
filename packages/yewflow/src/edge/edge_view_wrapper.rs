@@ -4,7 +4,9 @@ use web_sys::HtmlElement;
 use yew::prelude::*;
 use yew_hooks::UseMapHandle;
 
-use crate::{hooks::use_register_handles::Handle, panel::Viewport, utils::{AttributeExtractHelper, Position}};
+pub const EDGE_CLASS: &str = "__yewflow_edge__";
+
+use crate::{hooks::use_register_handles::Handle, viewport::viewport_struct::Viewport, utils::{AttributeExtractHelper, Position}};
 
 use super::edge_model::EdgeModel;
 
@@ -97,8 +99,8 @@ pub fn edge_view_wrapper<T: PartialEq + Clone + 'static>(props: &EdgeViewWrapper
         use_effect(move || {
             edge_ref.cast::<HtmlElement>().map(|element| {
                 let existing_class = element.get_class_names();
-                if existing_class.contains(&"edge".to_string()) {
-                    let _ = element.set_attribute("class", format!("edge {}", existing_class.join(" ")).as_str());
+                if existing_class.contains(&EDGE_CLASS.to_string()) {
+                    let _ = element.set_attribute("class", format!("{} {}", EDGE_CLASS, existing_class.join(" ")).as_str());
                 }
                 Some(())
             });

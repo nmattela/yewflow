@@ -27,5 +27,8 @@ jobs:
       uses: jetli/trunk-action@v0.1.0
       with:
         version: 'latest'
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
     - name: Run tests
-      run: cargo test --verbose
+      working-directory: "packages/yewflow"
+      run: wasm-pack test --headless --firefox

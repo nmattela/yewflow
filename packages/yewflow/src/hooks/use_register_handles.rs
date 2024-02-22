@@ -1,18 +1,26 @@
-use crate::utils::AttributeExtractHelper;
+use crate::utils::{AttributeExtractHelper, Position};
 use gloo_console::warn;
 use web_sys::{MutationRecord, MutationObserver, MutationObserverInit, HtmlElement, HtmlCollection};
 use yew::{NodeRef, hook, use_effect_with};
 use yew_hooks::UseMapHandle;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
-use utils::Position;
+use crate::viewport::viewport_struct::Viewport;
 
-use crate::{utils, panel::Viewport};
+#[derive(PartialEq, Clone)]
+pub struct Handle {
+    pub position: Position,
+    pub is_connectable: bool,
+}
 
+/**
+ * A hook that is only to be used internally.
+ * It lets you add handles to a central registry for quick lookup
+ */
 #[hook]
-pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<String, Position>, viewport: Viewport) {
+pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<String, Handle>, viewport: Viewport) {
 
-    fn search_and_register(element: HtmlElement, handle_registry: UseMapHandle<String, Position>) {
+    fn search_and_register(element: HtmlElement, handle_registry: UseMapHandle<String, Handle>) {
         if let Ok(children) = element.children().dyn_into::<HtmlCollection>() {
             let array = js_sys::Array::from(&children);
             array.for_each(&mut |child: wasm_bindgen::JsValue, _: u32, _: js_sys::Array| {
@@ -27,7 +35,8 @@ pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<Str
                         let y = rect.y();
                         let center_offset_x = rect.width() / 2.0;
                         let center_offset_y = rect.height() / 2.0;
-                        handle_registry.insert(id.clone(), (x + center_offset_x, y + center_offset_y));
+                        let is_connectable = child.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true";
+                        handle_registry.insert(id.clone(), Handle { position: (x + center_offset_x, y + center_offset_y), is_connectable });
                     }
 
                     search_and_register(child, handle_registry);

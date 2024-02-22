@@ -20,6 +20,7 @@ js-sys = "0.3.64"
 
 [dev-dependencies]
 yew = { features = ["csr"]}
+wasm-bindgen-test = "0.3.0"
 
 [dependencies.web-sys]
 version = "0.3"

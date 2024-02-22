@@ -1,3 +1,4 @@
+
 use yew_hooks::{UseMapHandle, use_map};
 
 use std::collections::HashMap;
@@ -5,28 +6,35 @@ use std::collections::HashMap;
 
 
 use wasm_bindgen::JsCast;
-use web_sys::{HtmlElement, EventTarget, DomRect};
+use web_sys::{HtmlElement, EventTarget};
 use yew::prelude::*;
 
 
+use crate::edge::default_edge_view::DefaultEdgeView;
 use crate::edge::default_preview_edge_view::DefaultPreviewEdgeView;
-use crate::hooks::use_register_handles::use_register_handles;
+
+use crate::hooks::use_register_handles::{use_register_handles, Handle};
+use crate::node::default_node_view::DefaultNodeView;
+use crate::node::drag_handle::DRAG_HANDLE_CLASS;
+use crate::node::handle::{SOURCE_HANDLE_CLASS, TARGET_HANDLE_CLASS};
 use crate::node::node_model::NodeModel;
 use crate::edge::edge_model::EdgeModel;
 use crate::edge::edge_view_wrapper::{EdgeViewWrapper, EdgeViewProps};
-use crate::node::node_view_wrapper::{NodeViewWrapper, NodeViewProps};
+use crate::node::node_view_wrapper::{NodeViewProps, NodeViewWrapper, NODE_CLASS};
 use crate::utils::{Position, AttributeExtractHelper};
 
+use crate::yew_flow_provider::YewFlowContext;
+
 #[derive(Properties, PartialEq)]
-pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> {
+pub struct PanelProps<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static> {
     /// Width of the panel
     pub width: String,
     /// Height of the panel
     pub height: String,
     /// A vector of nodes
     pub nodes: Vec<NodeModel<NodeData>>,
+        /// A callback function to listen to node changes (node gets added, removed, or modified)
     #[prop_or_default]
-    /// A callback function to listen to node changes (node gets added, removed, or modified)
     pub set_nodes: Callback<Vec<NodeModel<NodeData>>>,
     /// A vector of edges
     pub edges: Vec<EdgeModel<EdgeData>>,
@@ -37,98 +45,24 @@ pub struct PanelProps<NodeData: PartialEq + Clone, EdgeData: PartialEq + Clone> 
     #[prop_or_default]
     pub on_create_edge: Callback<EdgeModel<()>>,
     /// A callback that should return the appropriate component for the node, given the props
+    #[prop_or(Callback::from(|props| html! { <DefaultNodeView<NodeData> ..props /> }))]
     pub node_view: Callback<NodeViewProps<NodeData>, Html>,
     /// A callback that should return the appropriate component for the edge, given the props
+    #[prop_or(Callback::from(|props| html! { <DefaultEdgeView<EdgeData> ..props /> }))]
     pub edge_view: Callback<EdgeViewProps<EdgeData>, Html>,
-    #[prop_or_default]
     /// A callback that should return the appropriate component for a preview edge (the edge that you see when you are dragging out an edge from a handle, but have not yet placed it)
+    #[prop_or_default]
     pub preview_edge_view: Option<Callback<EdgeViewProps<()>, Html>>,
 
-    #[prop_or_default]
     /// Additional styles
-    pub style: String,
     #[prop_or_default]
+    pub style: String,
     /// Additional CSS class
+    #[prop_or_default]
     pub class: String,
-}
 
-#[derive(PartialEq, Clone, Copy)]
-pub struct Viewport {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    old_x: f64,
-    old_y: f64
-}
-
-impl Viewport {
-    fn new(x: f64, y: f64, z: f64) -> Self {
-        Viewport {
-            x,
-            y,
-            z,
-            old_x: x,
-            old_y: y,
-        }
-    }
-
-    pub fn pan_start(&self, (x, y): Position) -> Self {
-        Viewport {
-            x: self.x,
-            y: self.y,
-            z: self.z,
-            old_x: x,
-            old_y: y,
-        }
-    }
-
-    pub fn pan(&self, (x, y): Position) -> Self {
-
-        let base_x = (x - self.old_x) * self.z;
-        let base_y = (y - self.old_y) * self.z;
-
-        let _transformed_x = {
-            let powed = base_x.abs().powf(self.z);
-            if base_x >= 0.0 {
-                powed
-            } else {
-                powed * -1.0
-            }
-        };
-
-        let _transformed_y = {
-            let powed = base_y.abs().powf(self.z);
-            if base_y >= 0.0 {
-                powed
-            } else {
-                powed * -1.0
-            }
-        };
-
-        Viewport {
-            x: self.x + (x - self.old_x),
-            y: self.y + (y - self.old_y),
-            z: self.z,
-            old_x: x,
-            old_y: y
-        }
-    }
-
-    pub fn zoom(&self, container_rect: DomRect, (_x, _y, z): (f64, f64, f64), (mouse_x, mouse_y): (f64, f64)) -> Self {
-        let new_z = self.z + z;
-        if !(0.5..=2.0).contains(&new_z) {
-            *self
-        } else {
-            Viewport {
-                x: self.x + ((container_rect.width() * (z / 2.0)) / self.z) + (((mouse_x - self.x) * self.z - (mouse_x - self.x) * new_z) / self.z),
-                y: self.y + (((mouse_y - self.y) * self.z - (mouse_y - self.y) * new_z) / self.z),
-                z: new_z,
-                old_x: self.old_x,
-                old_y: self.old_y
-            }
-        }
-
-    }
+    #[prop_or_default]
+    pub debug: bool,
 }
 
 /**
@@ -136,18 +70,32 @@ impl Viewport {
  * It takes two type arguments, which represent the data provided to nodes and edges respectively.
  */
 #[function_component(Panel)]
-pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static>(props: &PanelProps<NodeData, EdgeData>) -> Html {
+pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + Clone + 'static = ()>(props: &PanelProps<NodeData, EdgeData>) -> Html {
 
+    let yew_flow_context = use_context::<YewFlowContext>().expect("You must wrap your <Panel/> component in a <YewFlowProvider/> for it to work. <YewFlowProvider/> provides the panel with critical context without which it cannot function.");
+    
     let panel_ref = use_node_ref();
     let nodes_ref = use_node_ref();
 
+    use_effect_with(panel_ref.clone(), move |panel_ref| {
+        yew_flow_context.panel_ref.set(Some(panel_ref.clone()));
+    });
+
+    /*Holds the ID and position of the node that is currently being dragged by the user */
     let currently_dragged_node = use_state(|| None::<(String, Position)>);
+    /*The preview edge (when busy connecting two handles with one another) */
     let preview_edge = use_state(|| None::<EdgeModel<()>>);
-    let handle_registry: UseMapHandle<String, Position> = use_map(HashMap::new());
-    let viewport: UseStateHandle<Viewport> = use_state(|| Viewport::new(0.0, 0.0, 1.0));
+    /*A mapping of handle ID and its corresponding position */
+    let handle_registry: UseMapHandle<String, Handle> = use_map(HashMap::new());
+    /*Information on the viewport */
+    // let viewport: UseStateHandle<Viewport> = use_state(|| Viewport::new(0.0, 0.0, 1.0));
+    let viewport = yew_flow_context.viewport;
+    /*Whether the user is panning (moving around the panel) */
     let panning: UseStateHandle<bool> = use_state(|| false);
 
     use_register_handles(nodes_ref.clone(), handle_registry.clone(), *viewport.clone());
+
+    let mouse_position = use_state(|| (0.0, 0.0));
 
     let set_node: Callback<NodeModel<NodeData>> = {
         let nodes = props.nodes.clone();
@@ -204,23 +152,31 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
                 let position_x = offset_left + relative_left;
                 let position_y = offset_top + relative_top;
 
-                if let Some(source_handle) = handle.parent_element_with_class("source-handle".to_string()) {
-                    preview_edge.set(Some(
-                        EdgeModel {
-                            id: "preview_edge".to_string(),
-                            start_id: handle.id(),
-                            source_handle_id: source_handle.id(),
-                            end_id: "preview_handle".to_string(),
-                            target_handle_id: "preview_handle".to_string(),
-                            data: (),
-                        }
-                    ));
-                } else if let Some(drag_handle) = handle.parent_element_with_class("drag-handle".to_string()) {
-                    let node = drag_handle.parent_element_with_class("node".to_string());
+                let source_handle = handle.parent_element_with_class(SOURCE_HANDLE_CLASS.to_string());
+                let source_handle_is_connectable = source_handle.clone().map(|source_handle| source_handle.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true").unwrap_or(false);
+
+                if source_handle_is_connectable {
+                    // If whatever is clicked is a connectable source handle, draw the preview edge
+                    if let Some(source_handle) = source_handle {
+                        preview_edge.set(Some(
+                            EdgeModel {
+                                id: "preview_edge".to_string(),
+                                start_id: handle.id(),
+                                source_handle_id: source_handle.id(),
+                                end_id: "preview_handle".to_string(),
+                                target_handle_id: "preview_handle".to_string(),
+                                data: (),
+                            }
+                        ));
+                    }
+                } else if let Some(drag_handle) = handle.parent_element_with_class(DRAG_HANDLE_CLASS.to_string()) {
+                    // If whatever is clicked is a drag handle, then drag the node
+                    let node = drag_handle.parent_element_with_class(NODE_CLASS.to_string());
                     if let Some(node) = node {
                         currently_dragged_node.set(Some((node.id(), (position_x, position_y))));
                     }
                 } else {
+                    // If anything else is being clicked, pan the viewport
                     panning.set(true);
                     viewport.set(viewport.pan_start((client_x, client_y)));
                 }
@@ -244,7 +200,9 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             (*preview_edge).clone().and_then(|preview_edge| e.target().and_then(|target| target.dyn_into().ok().map(|target: HtmlElement| {
                 handle_registry.remove(&preview_edge.target_handle_id);
                 let class_names = target.get_class_names();
-                if class_names.contains(&"target-handle".to_string()) {
+                let is_connectable = target.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true";
+                if class_names.contains(&TARGET_HANDLE_CLASS.to_string()) && is_connectable {
+                    // If the mouse is released on top of a connectable target handle, then add an edge
                     on_create_edge.emit(EdgeModel {
                         target_handle_id: target.id(),
                         ..preview_edge.clone()
@@ -264,11 +222,15 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
         let viewport = viewport.clone();
         let panning = panning.clone();
         let currently_dragged_node = currently_dragged_node.clone();
+        let mouse_position = mouse_position.clone();
         Callback::from(move |event: MouseEvent| {
             let x = event.client_x() as f64;
             let y = event.client_y() as f64;
 
+            mouse_position.set((x, y));
+
             if *panning {
+                // If the user is panning, then pan by changing the viewport to the current location
                 viewport.set(viewport.pan((
                     x,
                     y
@@ -276,12 +238,14 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             }
 
             panel_ref.cast::<HtmlElement>().map(|panel_ref| {
+                // If a node is being dragged, calculate the new position for that node
                 (*currently_dragged_node).clone().and_then(|(cdn, (offset_x, offset_y))|
                     nodes.iter().find(|node| node.id.eq(&cdn)).map(|node| {
                         let width = panel_ref.client_width() as f64;
                         let height = panel_ref.client_height() as f64;
                         if x >= 0.0 && x <= width && y >= 0.0 && y <= height {
                             let new_node = NodeModel {
+                                // This logic calculates the new position for the node, taking into account the offset of the mouse in relation to the node, as well as the current viewport position (including zoom level)
                                 position: (
                                     (x / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)) - (viewport.x / viewport.z) - (offset_x / viewport.z),
                                     (y / viewport.z) - (viewport.y / viewport.z) - (offset_y / viewport.z)
@@ -293,14 +257,16 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
                                                 
                     })
                 );
+                // If a new edge is being creates, create a fake invisible target handle for the preview edge so that the preview edge can be drawn with the same logic as a regular edge
                 (*preview_edge).clone().and_then(|edge| {
-                    handle_registry.insert(edge.target_handle_id, (x, y))
+                    handle_registry.insert(edge.target_handle_id, Handle { position: (x, y), is_connectable: false })
                 });
                 Some(())
             });  
         })
     };
 
+    // Scrolling the mouse wheel == zooming in or out the viewport
     let on_wheel = {
         let viewport = viewport.clone();
         let panel_ref = panel_ref.clone();
@@ -326,6 +292,19 @@ pub fn panel<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone 
             onmousemove={on_mouse_move}
             onwheel={on_wheel}
         >
+            {
+                if props.debug {
+                    html! {
+                        <div style={"position: absolute; left: 0; top: 0;"}>
+                            {
+                                format!("Mouse position: ({}, {})", mouse_position.0, mouse_position.1)
+                            }
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
             <div
                 style={format!(
                     "position: relative; transform: translate({}px, {}px) scale({});",

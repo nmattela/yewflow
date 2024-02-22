@@ -7,11 +7,12 @@ It is not a perfect copy, nor does it include all the features that React Flow h
 The current features are:
 - A fully-functional panel that can be dragged and zoomed in.
 - Nodes that can be dragged around and customized to your liking.
-- Straight edges that can be customized to your liking.
+- Straight and bezier edges that can be customized to your liking.
 
-Some major features that are missing:
-- There is only a single edge type (straight).
-- There is no default styling for nodes or edges. One must be provided by the user.
+Some features that are missing:
+- No built-in way to add edge labels
+- Stress testing is failing
+- No proper tests yet
 
 To get started, I recommend you check out the example in the [examples](examples) folder.
 

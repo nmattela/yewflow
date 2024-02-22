@@ -12,6 +12,9 @@ pub struct UseViewport {
     pub center: Callback<(), ()>,
 }
 
+/**
+ * This hook gives you access to the viewport, including methods to manipulate the viewport
+ */
 #[hook]
 pub fn use_viewport<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq + Clone + 'static>() -> UseViewport {
 
@@ -26,6 +29,8 @@ pub fn use_viewport<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq +
         Callback::from(move |new_viewport| yew_flow_context.viewport.set(new_viewport))
     });
 
+    // Nodes are necessary to calculate the center of the viewport.
+    // Nodes are extracted from the DOM, because we need to know their exact location and size
     let nodes = use_memo((*yew_flow_context.clone().panel_ref.clone()).clone(), |panel_ref| {
         fn get_node_elements(element: HtmlElement) -> Vec<HtmlElement> {
             element.children().dyn_into::<HtmlCollection>().map(|children| {
@@ -46,6 +51,8 @@ pub fn use_viewport<NodeData: PartialEq + Clone + 'static, EdgeData: PartialEq +
         panel_ref.clone().and_then(|panel_ref| panel_ref.get().and_then(|panel_ref| panel_ref.dyn_into::<HtmlElement>().ok().map(get_node_elements))).unwrap_or(vec![])
     });
 
+    //A callback that centers the viewport perfectly in the middle
+    //TODO: This will not yet zoom out the viewport to ensure all nodes fit on the screen
     let center = use_memo((yew_flow_context.clone().viewport.clone(), (*yew_flow_context.clone().panel_ref.clone()).clone(), nodes.clone()), |(viewport, panel_ref, nodes)| {
         let viewport = viewport.clone();
         let panel_ref = panel_ref.clone();

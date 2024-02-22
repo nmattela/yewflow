@@ -13,6 +13,10 @@ pub struct YewFlowContext {
     pub panel_ref: UseStateHandle<Option<NodeRef>>,
 }
 
+/**
+ * The YewFlowProvider is a provider for some of the context that is necessary for YewFlow to work
+ * This provider enables the use_viewport() hook, which lets you programatically change the viewport position
+ */
 #[function_component(YewFlowProvider)]
 pub fn yew_flow_provider(props: &YewFlowProviderProps) -> Html {
 

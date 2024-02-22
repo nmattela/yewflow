@@ -13,6 +13,10 @@ pub struct Handle {
     pub is_connectable: bool,
 }
 
+/**
+ * A hook that is only to be used internally.
+ * It lets you add handles to a central registry for quick lookup
+ */
 #[hook]
 pub fn use_register_handles(node_ref: NodeRef, handle_registry: UseMapHandle<String, Handle>, viewport: Viewport) {
 

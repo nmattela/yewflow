@@ -156,6 +156,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
                 let source_handle_is_connectable = source_handle.clone().map(|source_handle| source_handle.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true").unwrap_or(false);
 
                 if source_handle_is_connectable {
+                    // If whatever is clicked is a connectable source handle, draw the preview edge
                     if let Some(source_handle) = source_handle {
                         preview_edge.set(Some(
                             EdgeModel {
@@ -169,11 +170,13 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
                         ));
                     }
                 } else if let Some(drag_handle) = handle.parent_element_with_class(DRAG_HANDLE_CLASS.to_string()) {
+                    // If whatever is clicked is a drag handle, then drag the node
                     let node = drag_handle.parent_element_with_class(NODE_CLASS.to_string());
                     if let Some(node) = node {
                         currently_dragged_node.set(Some((node.id(), (position_x, position_y))));
                     }
                 } else {
+                    // If anything else is being clicked, pan the viewport
                     panning.set(true);
                     viewport.set(viewport.pan_start((client_x, client_y)));
                 }
@@ -199,6 +202,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
                 let class_names = target.get_class_names();
                 let is_connectable = target.get_attribute("is_connectable").unwrap_or("true".to_string()) == "true";
                 if class_names.contains(&TARGET_HANDLE_CLASS.to_string()) && is_connectable {
+                    // If the mouse is released on top of a connectable target handle, then add an edge
                     on_create_edge.emit(EdgeModel {
                         target_handle_id: target.id(),
                         ..preview_edge.clone()
@@ -226,6 +230,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
             mouse_position.set((x, y));
 
             if *panning {
+                // If the user is panning, then pan by changing the viewport to the current location
                 viewport.set(viewport.pan((
                     x,
                     y
@@ -233,12 +238,14 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
             }
 
             panel_ref.cast::<HtmlElement>().map(|panel_ref| {
+                // If a node is being dragged, calculate the new position for that node
                 (*currently_dragged_node).clone().and_then(|(cdn, (offset_x, offset_y))|
                     nodes.iter().find(|node| node.id.eq(&cdn)).map(|node| {
                         let width = panel_ref.client_width() as f64;
                         let height = panel_ref.client_height() as f64;
                         if x >= 0.0 && x <= width && y >= 0.0 && y <= height {
                             let new_node = NodeModel {
+                                // This logic calculates the new position for the node, taking into account the offset of the mouse in relation to the node, as well as the current viewport position (including zoom level)
                                 position: (
                                     (x / viewport.z) + ((width * viewport.z - width) / (viewport.z * 2.0)) - (viewport.x / viewport.z) - (offset_x / viewport.z),
                                     (y / viewport.z) - (viewport.y / viewport.z) - (offset_y / viewport.z)
@@ -250,6 +257,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
                                                 
                     })
                 );
+                // If a new edge is being creates, create a fake invisible target handle for the preview edge so that the preview edge can be drawn with the same logic as a regular edge
                 (*preview_edge).clone().and_then(|edge| {
                     handle_registry.insert(edge.target_handle_id, Handle { position: (x, y), is_connectable: false })
                 });
@@ -258,6 +266,7 @@ pub fn panel<NodeData: PartialEq + Clone + 'static = (), EdgeData: PartialEq + C
         })
     };
 
+    // Scrolling the mouse wheel == zooming in or out the viewport
     let on_wheel = {
         let viewport = viewport.clone();
         let panel_ref = panel_ref.clone();
